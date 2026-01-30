@@ -1,3 +1,4 @@
+require("dotenv").config()
 const mongoose = require('mongoose');
 
 const userStateSchema = new mongoose.Schema({
@@ -9,7 +10,7 @@ const userStateSchema = new mongoose.Schema({
 const UserState = mongoose.model('UserState', userStateSchema);
 
 async function connect() {
-  const uri = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/voicecommand';
+  const uri = process.env.MONGODB_URI ;
   await mongoose.connect(uri);
 }
 
