@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const db = require('./db');
 
 const app = express();
 const PORT = process.env.PORT || 4000;
@@ -7,37 +8,41 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
-// In-memory store keyed by a simple userId (for demo)
-const store = {
-  default: {
-    items: [],
-    history: [],
-  },
-};
-
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
-app.get('/api/state', (req, res) => {
-  const userId = (req.query.userId || 'default').toString();
-  if (!store[userId]) {
-    store[userId] = { items: [], history: [] };
+app.get('/api/state', async (req, res) => {
+  try {
+    const userId = (req.query.userId || 'default').toString();
+    const state = await db.getState(userId);
+    res.json(state);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to get state' });
   }
-  res.json(store[userId]);
 });
 
-app.post('/api/state', (req, res) => {
-  const userId = (req.query.userId || 'default').toString();
-  const { items, history } = req.body || {};
-  store[userId] = {
-    items: Array.isArray(items) ? items : [],
-    history: Array.isArray(history) ? history : [],
-  };
-  res.json({ ok: true });
+app.post('/api/state', async (req, res) => {
+  try {
+    const userId = (req.query.userId || 'default').toString();
+    const { items, history } = req.body || {};
+    await db.setState(userId, items, history);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to save state' });
+  }
 });
 
-app.listen(PORT, () => {
-  console.log(`Backend server listening on http://localhost:${PORT}`);
-});
+async function start() {
+  await db.connect();
+  app.listen(PORT, () => {
+    console.log(`Server listening on http://localhost:${PORT}`);
+  });
+}
 
+start().catch((err) => {
+  console.error('Failed to start:', err);
+  process.exit(1);
+});
